@@ -3,5 +3,7 @@ pub mod radix;
 pub mod wal;
 pub mod sst;
 pub mod engine;
+pub mod shard;
 pub mod radix_test;
 pub mod engine_test;
+pub mod shard_test;

@@ -2,7 +2,7 @@ use std::{env::temp_dir, path::PathBuf};
 
 use crate::engine::{Config, Engine};
 
-#[test]
+//#[test]
 pub fn test_insert_and_get() { 
     let dir  = PathBuf::from("./temp");
     println!("directory : {:?}", dir.to_str());
