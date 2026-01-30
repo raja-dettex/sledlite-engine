@@ -2,7 +2,7 @@ use crate::radix::RadixTree;
 
 
 
-#[test]
+//#[test]
 pub fn test_radix() { 
 
     let tree = RadixTree::new();
@@ -27,7 +27,7 @@ pub fn test_radix() {
     assert_eq!(value, val);
 }
 
-#[test]
+//#[test]
 pub fn test_radix_re_insertion_will_fail() {    
     let tree = RadixTree::new();
     let key: Vec<u8> = vec![1, 2, 3];

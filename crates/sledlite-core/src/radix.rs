@@ -1,6 +1,6 @@
 use std::{sync::atomic::Ordering};
 
-use crate::node::Node;
+use crate::node::{BRANCH_CAPACITY, Node};
 use crossbeam_epoch::{Atomic, Owned, Shared};
 
 #[derive(Debug)]
@@ -13,6 +13,16 @@ pub enum RadixError {
     InvalidKey,
     Failed{ failed_garbage_value: Vec<u8> },
     AlreadyWritten{ value : Vec<u8>}    
+}
+
+impl Into<String> for RadixError {
+    fn into(self) -> String {
+        match self { 
+            Self::InvalidKey => "invalid key".to_string(),
+            Self::Failed { failed_garbage_value } => format!("failed with garbage value: {:?}", failed_garbage_value),
+            Self::AlreadyWritten { value } => format!("already written : {:?}",value)
+        }
+    }
 }
 
 impl RadixTree { 
@@ -56,7 +66,9 @@ impl RadixTree {
             curr_shared = next;
         }
         let shared_value = (unsafe { curr_shared.deref()}).value().load(Ordering::SeqCst, &guard);
-        
+        if shared_value.is_null() { 
+            return Ok(None);
+        }
         let value = unsafe { shared_value.deref()}.clone().to_vec();
         Ok(Some(value))
     }
@@ -245,5 +257,36 @@ impl RadixTree {
             unsafe { guard.defer_destroy(old_val_shared); }
             return Ok(Some(old_vec_clone))
         }
+    }
+
+    pub fn iter_all(&self) -> Vec<(Vec<u8>, Vec<u8>)>{ 
+        let mut out = Vec::new();
+        let guard = crossbeam_epoch::pin();
+        let root_shared = self.root.load(Ordering::SeqCst, &guard);
+        if root_shared.is_null() { 
+            return out;
+        }
+        let mut stack : Vec<(Shared<Node>, Vec<u8>)> = Vec::new();
+        stack.push((root_shared, Vec::new()));
+        while let Some((shared_node, prefix)) = stack.pop() { 
+            let node_ref = unsafe { shared_node.deref()};
+            let v_ptr = node_ref.value().load(Ordering::SeqCst, &guard);
+            if !v_ptr.is_null() { 
+                let value = unsafe { v_ptr.deref()};
+                out.push((prefix.clone(), value.clone()));
+            }
+
+            for idx in (0..BRANCH_CAPACITY).rev() { 
+                let atomic_child = node_ref.get(idx as u8);
+                let shared_child = atomic_child.load(Ordering::SeqCst, &guard);
+                if !shared_child.is_null() { 
+                    let mut new_prefix = prefix.clone();
+                    new_prefix.push(idx as u8);
+                    stack.push((shared_child, new_prefix));
+                }
+            }
+        }
+
+        out
     }
 }
