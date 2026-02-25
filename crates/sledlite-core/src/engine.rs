@@ -10,6 +10,8 @@ pub struct Config {
 }
 
 
+// todo: handle concurrent flushing of memtable snapshot into disc with the safest way possible
+
 pub struct Engine {
     wal_path: PathBuf, 
     wal : WalWriter,
