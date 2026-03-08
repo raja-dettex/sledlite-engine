@@ -1,34 +1,26 @@
 mod region;
 mod store;
 mod command;
+pub mod transport;
+pub mod node;
 
-use store::RaftStore;
-use command::Command;
+use std::collections::HashMap;
 
-fn main() {
-    let mut store = RaftStore::new();
 
-    store.create_region(1);
-    store.create_region(2);
+use crate::{node::Node, region::Region, transport::Transport};
 
-    // tick to elect leaders
-    for _ in 0..50 {
-        store.tick_all();
-    }
 
-    // propose to region 1
-    store.propose(1, Command::Put {
-        key: b"k1".to_vec(),
-        val: b"v1".to_vec(),
-    });
-
-    // propose to region 2
-    store.propose(2, Command::Put {
-        key: b"k2".to_vec(),
-        val: b"v2".to_vec(),
-    });
-
-    for _ in 0..50 {
-        store.tick_all();
-    }
+#[tokio::main]
+async fn main() {
+    let args: Vec<String> = std::env::args().collect();
+    let id: u64 = args[1].parse().unwrap();
+    let addr = args[2].clone();
+    let mut peers = HashMap::new();
+    peers.insert(1, "127.0.0.1:5001".to_string());
+    peers.insert(2, "127.0.0.1:5002".to_string());
+    peers.insert(3, "127.0.0.1:5003".to_string());
+    let transport = Transport { peers };
+    let region = Region::new(id, b"a".to_vec(), b"e".to_vec(), vec![1,2,3]);
+    let mut node = Node::new(id, region, transport);
+    node.run(addr).await;
 }

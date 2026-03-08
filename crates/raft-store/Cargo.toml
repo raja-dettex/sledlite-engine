@@ -4,8 +4,12 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+bincode2 = "2.0.1"
 bytes = "1.11.1"
+protobuf = "2.19.0"
 raft = "0.7.0"
+serde = { version = "1.0.228", features = ["derive"] }
 slog = "2.8.2"
 slog-async = "2.8.0"
 slog-term = "2.9.2"
+tokio = { version = "1.49.0", features = ["full"] }

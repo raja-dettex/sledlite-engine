@@ -1,9 +1,10 @@
 use bytes::{Buf, BufMut, BytesMut};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Command { 
     Put { key: Vec<u8>, val: Vec<u8>},
-    Delete { key: Vec<u8>}
+    Delete { key: Vec<u8>},
+    Split { key: Vec<u8>, new_region_id: u64}
 }
 
 impl Command { 
@@ -21,6 +22,12 @@ impl Command {
                 buf.put_u8(2);
                 buf.put_u32(key.len() as u32);
                 buf.extend_from_slice(&key);
+            },
+            Command::Split { key, new_region_id } => { 
+                buf.put_u8(3);
+                buf.put_u32(key.len() as u32);
+                buf.extend_from_slice(&key);
+                buf.put_u64(*new_region_id);
             }
         }
         buf.to_vec()
@@ -41,6 +48,10 @@ impl Command {
             2 => { 
                 return Self::Delete { key };
             },
+            3 => { 
+                let new_region_id = data.get_u64();
+                return Self::Split { key, new_region_id }
+            }
             _ => todo!()
         }
     }
